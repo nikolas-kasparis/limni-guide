@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Limni Guide</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e5e7eb;
+      --accent:#0ea5e9; --success:#16a34a; --warn:#f59e0b; --danger:#ef4444; --red-ui:#ff4d4d;
+      --tab:#0ea5e9; --tab-bg:#e0f2fe; --tab-bg-inactive:;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .container{max-width:1120px;margin:0 auto;padding:20px 16px 140px}
+    header{padding:6px 0 14px}
+    h1{font-size:clamp(1.1rem,2.5vw,1.6rem);margin:0 0 4px}
+    .sub{color:var(--muted);font-size:.98rem}
+
+    /* Bigger, touch-friendly controls */
+    .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:12px}
+    .chip{display:inline-flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#F5F5F5;font-size:1rem;min-height:48px}
+    input[type=date]{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:1rem;min-height:44px}
+    button{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font-size:1rem;min-height:44px}
+    button:active{transform:translateY(1px)}
+
+    main{margin-top:6px}
+    .view{display:none}
+    .view.active{display:block}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .card h2{margin:0 0 8px;font-size:1.15rem}
+    .muted{color:var(--muted);font-size:.95rem}
+    .grid{display:grid;gap:14px}
+    @media(min-width:900px){.grid-2{grid-template-columns:1fr 1fr}}
+    .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
+    .kpi{border:1px solid var(--line);border-radius:12px;padding:10px}
+    .kpi .label{font-size:.8rem;color:var(--muted)}
+    .kpi .value{font-weight:600;font-size:1.15rem}
+    .gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:960px){.gallery{grid-template-columns:repeat(3,1fr)}}
+    .gallery figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    .gallery img{width:100%;height:180px;object-fit:cover;display:block}
+    .gallery figcaption{font-size:.8rem;color:var(--muted);padding:6px 8px}
+    footer{color:var(--muted);font-size:.9rem;text-align:center;padding:24px 0}
+
+    /* Turtle timeline */
+    .season-wrap{margin-top:8px}
+    .season-bar{position:relative;height:18px;border:1px solid var(--line);border-radius:999px;background:#fff;overflow:hidden}
+    .season-bar .nest{position:absolute;left:0;top:0;bottom:0;background:#fbbf24}
+    .season-bar .hatch{position:absolute;top:0;bottom:0;background:#86efac}
+    .season-marker{position:relative;margin-top:10px;height:24px}
+    .marker{position:absolute;top:-5px;transform:translateX(-50%);}
+    .marker .dot{width:12px;height:12px;border-radius:50%;background:var(--danger);border:2px solid #fff;box-shadow:0 0 0 2px var(--danger)}
+    .month-labels{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-top:8px}
+
+    /* Bottom tab bar (bigger, safe-area aware) */
+    .tabs{position:fixed;left:0;right:0;bottom:0;background:#F5F5F5;border-top:1px solid var(--line);display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:50}
+    .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px;border-radius:14px;border:1px solid transparent;font-size:1rem;min-height:64px;background:var(--tab-bg-inactive)}
+    .tab .icon{font-size:1.25rem;line-height:1}
+    .tab .lbl{font-size:.95rem}
+    .tab.active{border-color:var(--tab);background:var(--tab-bg)}
+
+    /* Red-mode for turtle-safe nights */
+    .red-mode body,.red-mode{background:#000;color:var(--red-ui)}
+    .red-mode .card{background:#000;border-color:#311;box-shadow:none}
+    .red-mode .kpi,.red-mode .chip,.red-mode input,.red-mode button{background:#000;border-color:#311;color:var(--red-ui)}
+    .red-mode a{color:#ff8080}
+    .red-mode img{filter:brightness(.4) saturate(.7)}
+  </style>
+  <script src="https://unpkg.com/suncalc@1.9.0/suncalc.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1 align="center">Limni Guide</h1>
+      <div class="sub" align="center">Nature · History · Sunset · Night Sky — for guests near Limni Pier, Polis Chrysochous</div>
+      <div class="controls">
+        <label class="chip">Date <input id="datePick" type="date" /></label>
+        <button id="redBtn" title="Toggle red-mode for night">🌙 Red‑mode</button>
+      </div>
+    </header>
+
+    <main align="center">
+      <!-- Turtles -->
+      <section id="sec-turtles" class="view active">
+        <div class="card">
+          <h2>Sea Turtles of Chrysochou Bay</h2>
+          <div class="muted">Loggerhead (<i>Caretta caretta</i>) & Green turtle (<i>Chelonia mydas</i>)</div>
+          <div class="grid grid-2" style="margin-top:10px">
+            <div>
+              <p><strong>Nesting & Hatching Timeline</strong></p>
+              <ul>
+                <li><strong>Nesting:</strong> late <strong>May</strong> to <strong>August</strong> (peaks in June–July).</li>
+                <li><strong>Hatching:</strong> roughly <strong>July</strong> to <strong>October</strong> (after ~45–60 days incubation).</li>
+                <li>Keep beaches <strong>dark & quiet</strong> after sunset; stay off dunes; never use flash.</li>
+              </ul>
+              <div class="season-wrap">
+                <div id="seasonBar" class="season-bar"></div>
+                <div class="season-marker"><div id="seasonMarker" class="marker"><div class="dot"></div></div></div>
+                <div class="month-labels"><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span></div>
+                <div id="seasonNote" class="muted" style="margin-top:6px"></div>
+              </div>
+              <p style="margin-top:10px" class="muted">Conservation teams mark nests and often place a protective cage over each nest to prevent trampling and predation. Please do not touch markers or cages.</p>
+            </div>
+            <div>
+              <div class="gallery">
+                <figure>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Caretta_caretta_2.jpg" alt="Loggerhead turtle (Caretta caretta), Akamas, Cyprus" />
+                  <figcaption>Loggerhead turtle</figcaption>
+                </figure>
+                <figure>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/Cyprus-turtle-nesting-beach.jpg" alt="Cyprus turtle nesting beach" />
+                  <figcaption>Cyprus nesting beach</figcaption>
+                </figure>
+                <figure>
+                  <img src="https://static.euronews.com/articles/stories/08/74/12/78/808x454_cmsv2_7c39ef84-7bb6-5170-bf88-867f398609d9-8741278.jpg" alt="Example protective cage over a turtle nest" />
+                  <figcaption>Illustrative protective cage</figcaption>
+                </figure>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pier -->
+      <section id="sec-pier" class="view">
+        <div class="card">
+          <h2>Limni Pier (Dock)</h2>
+          <div class="muted">A mining‑era pier turned local landmark on the Polis–Argaka coast.</div>
+          <p style="margin-top:10px">Built to serve the historical Limni copper & sulphur mine, the pier later became a beloved spot for swims and fishing. Some sections have deteriorated in recent years; access may be restricted — always follow local notices for safety.</p>
+          <div class="gallery">
+            <figure>
+              <<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Argaka_Pier%2C_Polis_03.jpg" alt="Limni (Argaka) Pier — view 1" />
+              <figcaption>Limni (Argaka) Pier</figcaption>
+            </figure>
+            <figure>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Argaka_Pier%2C_Polis_02.jpg" alt="Limni (Argaka) Pier — view 2" />
+              <figcaption>View from the Pier</figcaption>
+            </figure>
+            <figure>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/a/ae/Argaka_Pier%2C_Polis_04.jpg" alt="Limni (Argaka) Pier — view 3" />
+              <figcaption>Coastal landmark near the cabins</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sunset -->
+      <section id="sec-sunset" class="view">
+        <div class="card">
+          <h2>Today’s Sunset</h2>
+          <div class="muted" id="place">Limni Pier, Polis Chrysochous</div>
+          <div class="kpis" style="margin-top:10px">
+            <div class="kpi"><div class="label">Sunset</div><div class="value" id="sunset">—</div></div>
+            <div class="kpi"><div class="label">Civil twilight end</div><div class="value" id="dusk">—</div></div>
+            <div class="kpi"><div class="label">Moonrise</div><div class="value" id="moonrise">—</div></div>
+            <div class="kpi"><div class="label">Moonset</div><div class="value" id="moonset">—</div></div>
+            <div class="kpi" style="grid-column:span 2"><div class="label">Moon illumination</div><div class="value" id="moonfrac">—</div></div>
+          </div>
+          <p class="muted" style="margin-top:10px">Best photos from <strong>golden hour</strong> (~1 hour before sunset) through <strong>blue hour</strong>. During turtle season, keep shore areas <strong>dark</strong> after sunset.</p>
+          <div class="gallery">
+            <figure>
+              <img src="https://scontent.fnic1-2.fna.fbcdn.net/v/t1.6435-9/137596238_10160562370108327_5697855203352269939_n.jpg?stp=dst-jpg_p180x540_tt6&_nc_cat=101&ccb=1-7&_nc_sid=9eae26&_nc_ohc=zbJbnMubPbQQ7kNvwFI10If&_nc_oc=AdmDwrY_QAAj0k1AEkGadMNuGGJxaSmomwKPTVwVDFVNrdDN6wrG3Mhrdf3vWLn5CRA&_nc_zt=23&_nc_ht=scontent.fnic1-2.fna&_nc_gid=dILklAzxkFmjpyAw_W818w&oh=00_AfUbEOXhBaoUCYAfse6GkOywZyz-w8JCdLR7l_b5-_eQig&oe=68CE7B22" alt="Argaka nature trail at golden hour (near Limni)" alt="Argaka nature trail at golden hour (near Limni)" />
+              <figcaption>Golden light along the pier</figcaption>
+            </figure>
+            <figure>
+              <img src="https://live.staticflickr.com/2902/14225526973_87a2d5c4b9_b.jpg" alt="Argaka coastal sunset tones" />
+              <figcaption>Coastal sunset hues</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Night sky -->
+      <section id="sec-sky" class="view">
+        <div class="card">
+          <h2>Night Sky — What to Look For</h2>
+          <div class="grid grid-2" style="margin-top:10px">
+		    <div>
+              <div class="kpis">
+                <div class="kpi"><div class="label">Astronomical twilight end</div><div class="value" id="astroEnd">—</div></div>
+                <div class="kpi"><div class="label">Astronomical twilight start</div><div class="value" id="astroStart">—</div></div>
+                <div class="kpi"><div class="label">Moon %</div><div class="value" id="moonPct">—</div></div>
+                <div class="kpi"><div class="label">Approx. next new moon</div><div class="value" id="nextNew">—</div></div>
+              </div>
+            </div>
+            <div>
+              <ul>
+                <li><strong>Milky Way (summer):</strong> On dark, moonless nights, look south–southeast. Brightest in <strong>June–August</strong>.</li>
+                <li><strong>Constellations:</strong> Summer: <i>Scorpius</i>, <i>Sagittarius</i>, <i>Cygnus</i>, <i>Lyra</i>, <i>Aquila</i>. Autumn: <i>Andromeda</i>, <i>Pegasus</i>. Winter: <i>Orion</i>, <i>Taurus</i>, <i>Pleiades</i>.</li>
+                <li><strong>Light discipline:</strong> Use red light; avoid white torches. From May–Oct keep beaches <strong>dark & quiet</strong> for hatchlings.</li>
+                <li><strong>Pro tip:</strong> Step slightly inland to reduce horizon glow and let your eyes adapt.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>Built for guests of Limni Cambins</footer>
+    </main>
+  </div>
+
+  <!-- Bottom nav (bigger icons & labels) -->
+  <nav class="tabs" role="tablist" aria-label="Quick menu">
+    <button class="tab active" data-target="sec-turtles" role="tab" aria-selected="true"><span class="icon">🐢</span><span class="lbl">Turtles</span></button>
+    <button class="tab" data-target="sec-pier" role="tab" aria-selected="false"><span class="icon">⚓</span><span class="lbl">Pier</span></button>
+    <button class="tab" data-target="sec-sunset" role="tab" aria-selected="false"><span class="icon">🌅</span><span class="lbl">Sunset</span></button>
+    <button class="tab" data-target="sec-sky" role="tab" aria-selected="false"><span class="icon">✨</span><span class="lbl">Night sky</span></button>
+  </nav>
+
+  <script>
+    const LIMNI = { lat: 35.05752, lon: 32.45439 };
+    const datePick = document.getElementById('datePick');
+
+    function pad(n){return String(n).padStart(2,'0')}
+    function fmtTime(d){ if(!d) return '—'; try{ return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});}catch{return '—'} }
+
+    function approxNextNewMoon(base){
+      let candidate=null,minFrac=1;for(let i=0;i<35;i++){const dd=new Date(base);dd.setDate(base.getDate()+i);const ph=SunCalc.getMoonIllumination(dd).phase;const frac=Math.min(ph,1-ph);if(frac<minFrac){minFrac=frac;candidate=dd}}return candidate;
+    }
+
+    function withinSeason(d){
+      const y=d.getFullYear();
+      const start=new Date(y,4,1); // May 1
+      const end=new Date(y,9,31); // Oct 31
+      return {start,end,inside:(d>=start && d<=end)}
+    }
+
+    function percentBetween(d,start,end){
+      const t=(d-start)/(end-start);return Math.max(0,Math.min(1,t));
+    }
+
+    function renderSeason(d){
+      const {start,end,inside}=withinSeason(d);
+      const bar=document.getElementById('seasonBar');
+      const marker=document.getElementById('seasonMarker');
+      const note=document.getElementById('seasonNote');
+      bar.innerHTML='';
+      const total=end-start;
+      const mk=(left,width,cls)=>{const seg=document.createElement('div');seg.className=cls;seg.style.left=left+'%';seg.style.width=width+'%';bar.appendChild(seg)};
+      const n1=new Date(d.getFullYear(),4,1), n2=new Date(d.getFullYear(),7,31);
+      const h1=new Date(d.getFullYear(),6,1), h2=end;
+      const nL=100*((n1-start)/total), nW=100*((n2-n1)/total);
+      const hL=100*((h1-start)/total), hW=100*((h2-h1)/total);
+      mk(nL,nW,'nest'); mk(hL,hW,'hatch');
+      const p=percentBetween(d,start,end);
+      marker.style.left=(p*100)+'%';
+      note.textContent = inside ? 'Today falls inside turtle season.' : 'Today is outside the core turtle season (May–Oct).';
+    }
+
+    function update(){
+      const val=datePick.value;const d=val?new Date(val+'T12:00:00'):new Date();
+      const sun=SunCalc.getTimes(d,LIMNI.lat,LIMNI.lon);
+      const moonTimes=SunCalc.getMoonTimes(d,LIMNI.lat,LIMNI.lon,true);
+      const illum=SunCalc.getMoonIllumination(d);
+      const nextNew=approxNextNewMoon(d);
+      document.getElementById('sunset').textContent=fmtTime(sun.sunset);
+      document.getElementById('dusk').textContent=fmtTime(sun.dusk);
+      document.getElementById('moonrise').textContent=moonTimes.rise?fmtTime(moonTimes.rise):(moonTimes.alwaysUp?'always up':'—');
+      document.getElementById('moonset').textContent=moonTimes.set?fmtTime(moonTimes.set):(moonTimes.alwaysDown?'always down':'—');
+      document.getElementById('moonfrac').textContent=Math.round(illum.fraction*100)+'%';
+      document.getElementById('astroEnd').textContent=fmtTime(sun.night);
+      document.getElementById('astroStart').textContent=fmtTime(sun.nightEnd);
+      document.getElementById('moonPct').textContent=Math.round(illum.fraction*100)+'%';
+      document.getElementById('nextNew').textContent=nextNew?`${nextNew.getFullYear()}-${pad(nextNew.getMonth()+1)}-${pad(nextNew.getDate())}`:'—';
+      renderSeason(d);
+    }
+
+    // Tabs
+    const tabs=[...document.querySelectorAll('.tab')];
+    const views=[...document.querySelectorAll('.view')];
+    function show(id){
+      views.forEach(v=>v.classList.toggle('active', v.id===id));
+      tabs.forEach(t=>t.classList.toggle('active', t.dataset.target===id));
+    }
+    tabs.forEach(t=>t.addEventListener('click',()=>show(t.dataset.target)));
+
+    // Red-mode toggle (bigger button already)
+    document.getElementById('redBtn').addEventListener('click',()=>{document.documentElement.classList.toggle('red-mode')});
+
+    // init
+    (function(){
+      const today=new Date(); const yyyy=today.getFullYear(); const mm=String(today.getMonth()+1).padStart(2,'0'); const dd=String(today.getDate()).padStart(2,'0');
+      datePick.value=`${yyyy}-${mm}-${dd}`; update();
+    })();
+
+    datePick.addEventListener('change', update);
+  </script>
+</body>
+</html>
