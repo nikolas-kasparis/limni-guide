@@ -1,5 +1,5 @@
 /* sw.js */
-const CACHE = 'limni-v2';
+const CACHE = 'limni-v3';
 const APP_SHELL = [
   './',
   './index.html',
