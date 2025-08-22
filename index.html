@@ -56,6 +56,18 @@
     .marker .dot{width:12px;height:12px;border-radius:50%;background:var(--danger);border:2px solid #fff;box-shadow:0 0 0 2px var(--danger)}
     .month-labels{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-top:8px}
 
+    /* Overlap (Nesting + Hatching) shown as diagonal stripes */
+    .season-bar .overlap{
+      position:absolute; top:0; bottom:0; pointer-events:none;
+      /* diagonal stripes */
+      background: repeating-linear-gradient(
+        135deg,
+        rgba(134, 239, 172,1) 0 8px,           /* transparent run */
+        rgba(251, 191, 36,1) 8px 16px         /* dark stripe */
+      );
+      mix-blend-mode: normal;              /* lets stripes blend with colors below */
+    }
+
     /* Bottom tab bar (bigger, safe-area aware) */
     .tabs{position:fixed;left:0;right:0;bottom:0;background:#F5F5F5;border-top:1px solid var(--line);display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:50}
     .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px;border-radius:14px;border:1px solid transparent;font-size:1rem;min-height:64px;background:var(--tab-bg-inactive)}
@@ -91,17 +103,17 @@
           <div class="muted">Loggerhead (<i>Caretta caretta</i>) & Green turtle (<i>Chelonia mydas</i>)</div>
           <div class="grid grid-2" style="margin-top:10px">
             <div>
-              <p><strong>Nesting & Hatching Timeline</strong></p>
-              <ul>
-                <li><strong>Nesting:</strong> late <strong>May</strong> to <strong>August</strong> (peaks in June–July).</li>
-                <li><strong>Hatching:</strong> roughly <strong>July</strong> to <strong>October</strong> (after ~45–60 days incubation).</li>
-                <li>Keep beaches <strong>dark & quiet</strong> after sunset; stay off dunes; never use flash.</li>
-              </ul>
+              <p><strong><u>Nesting & Hatching Timeline</u></strong></p>
+              
+                <strong><span style="color:#fbbf24;">■</span> Nesting:</strong> late <strong>May</strong> to <strong>August</strong> (peaks in June–July).<br><br>
+                <strong><span style="color:#86efac;">■</span> Hatching:</strong> roughly <strong>July</strong> to <strong>October</strong> (after ~45–60 days incubation).<br><br>
+                * Keep beaches <strong>dark & quiet</strong> after sunset; stay off dunes; never use flash.<br><br>
+              
               <div class="season-wrap">
                 <div id="seasonBar" class="season-bar"></div>
                 <div class="season-marker"><div id="seasonMarker" class="marker"><div class="dot"></div></div></div>
                 <div class="month-labels"><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span></div>
-                <div id="seasonNote" class="muted" style="margin-top:6px"></div>
+                <div id="seasonNote" class="muted" style="margin-top:6px;font-weight:bold"></div>
               </div>
               <p style="margin-top:10px" class="muted">Conservation teams mark nests and often place a protective cage over each nest to prevent trampling and predation. Please do not touch markers or cages.</p>
             </div>
@@ -234,22 +246,56 @@
     }
 
     function renderSeason(d){
-      const {start,end,inside}=withinSeason(d);
-      const bar=document.getElementById('seasonBar');
-      const marker=document.getElementById('seasonMarker');
-      const note=document.getElementById('seasonNote');
-      bar.innerHTML='';
-      const total=end-start;
-      const mk=(left,width,cls)=>{const seg=document.createElement('div');seg.className=cls;seg.style.left=left+'%';seg.style.width=width+'%';bar.appendChild(seg)};
-      const n1=new Date(d.getFullYear(),4,1), n2=new Date(d.getFullYear(),7,31);
-      const h1=new Date(d.getFullYear(),6,1), h2=end;
-      const nL=100*((n1-start)/total), nW=100*((n2-n1)/total);
-      const hL=100*((h1-start)/total), hW=100*((h2-h1)/total);
-      mk(nL,nW,'nest'); mk(hL,hW,'hatch');
-      const p=percentBetween(d,start,end);
-      marker.style.left=(p*100)+'%';
-      note.textContent = inside ? 'Today falls inside turtle season.' : 'Today is outside the core turtle season (May–Oct).';
-    }
+    const {start, end, inside} = withinSeason(d);
+    const bar = document.getElementById('seasonBar');
+    const marker = document.getElementById('seasonMarker');
+    const note = document.getElementById('seasonNote');
+
+    // Clear bar
+    bar.innerHTML = '';
+
+    // Helpers
+    const total = end - start;
+    const mk = (left, width, cls) => {
+      const seg = document.createElement('div');
+      seg.className = cls;
+      seg.style.left = left + '%';
+      seg.style.width = width + '%';
+      bar.appendChild(seg);
+    };
+
+    // Ranges:
+    // Nesting:  May 1 – Aug 31
+    // Hatching: Jul 1 – Oct 31
+    // Overlap:  Jul 1 – Aug 31
+    const y = d.getFullYear();
+    const n1 = new Date(y, 4, 1),   n2 = new Date(y, 7, 31);
+    const h1 = new Date(y, 6, 1),   h2 = end;
+    const o1 = new Date(y, 6, 1),   o2 = new Date(y, 7, 31);
+
+    const nL = 100 * ((n1 - start) / total), nW = 100 * ((n2 - n1) / total);
+    const hL = 100 * ((h1 - start) / total), hW = 100 * ((h2 - h1) / total);
+    const oL = 100 * ((o1 - start) / total), oW = 100 * ((o2 - o1) / total);
+
+    // Base bands
+    mk(nL, nW, 'nest');    // amber band
+    mk(hL, hW, 'hatch');   // green band
+
+    // Striped overlap on top
+    mk(oL, oW, 'overlap');
+
+    // Today marker
+    const p = percentBetween(d, start, end);
+    marker.style.left = (p * 100) + '%';
+
+    // Note
+    const inOverlap = (d >= o1 && d <= o2);
+    note.textContent = inside
+      ? (inOverlap
+          ? 'Today falls inside the overlapping window (nesting + hatching).'
+          : 'Today falls inside turtle season.')
+      : 'Today is outside the core turtle season (May–Oct).';
+  }
 
     function update(){
       const val=datePick.value;const d=val?new Date(val+'T12:00:00'):new Date();
