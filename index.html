@@ -103,6 +103,7 @@
       <div class="controls">
         <label class="chip">Date <input id="datePick" type="date" /></label>
         <button id="redBtn" title="Toggle red-mode for night">🌙</button>
+		<button id="installBtn" style="display:none;padding:10px 14px;border:1px solid #e5e7eb;border-radius:12px">Install app</button>
       </div>
     </header>
 
@@ -347,6 +348,22 @@
     datePick.addEventListener('change', update);
   </script>
 
+	<script>
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('installBtn');
+  btn.style.display = 'inline-block';
+  btn.onclick = async () => {
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;      // accepted / dismissed
+    deferredPrompt = null;
+    btn.style.display = 'none';
+  };
+});
+</script>
+	
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
